@@ -1,0 +1,87 @@
+"""
+
+
+GWAS pipeline 
+
+
+Requirements for input:
+
+
+1. To remain sensible, it would be required to proivde a "sample sheet" in tsv format.
+   There should at least be two columns: 
+   	sample, file
+   The read orientation would be inferred.  For now, we assume that the output from
+   different lanes are merged - will extend it
+
+2. If our input is already bam - for now i think it is better to extract fastq reads
+   and realign so there are no software artifacts.
+
+
+"""
+
+
+# Get inputs
+def get_inputs(samplesheetfile):
+	
+	samplesheet = pd.read_tsv(samplesheetfile)
+
+	samplesheet = samplesheet.set_index("sample",drop=False)
+
+	samplesheet = samplesheet.sort_values(["sample","file"])
+
+	return samplesheet
+
+
+
+samplesheet = get_inputs(config["samplesheet"])
+
+
+
+
+# Should move this to a proper config file
+
+
+
+
+# Placeholder for now 
+rule all:
+
+	expand("output/{sample}/final.txt", sample=samplesheet["sample"].drop_duplicates.values())
+
+
+# Pretty ugly - but it willl work for now
+rule trimming:
+	input: 
+		FR=lambda wildcards: samplesheet.loc[wildcards.sample].values[0]
+		RR=lambda wildcards: samplesheet.loc[wildcards.sample].values[1]
+
+	output: 
+		FR="output/{sample}/{sample}_R1.fq.gz",
+		RR="output/{sample}/{sample}_R2.fq.gz",
+		FRu="output/{sample}/{sample}_U_R1.fq.gz",
+		RRu="output/{sample}/{sample}_U_R2.fq.gz"
+		
+
+	shell:
+		"trimmomatic PE -threads {threads} {input.FR} {input.RR} {output.FR} {output.FRu} {output.RR} {output.RRu} "
+		"SLIDINGWINDOW:4:20"
+
+# Not the correct way - need to configure for .alt files too
+rule bwa_mapping:
+	input: 
+		FR=rules.trimming.output.FR,
+		RR=rules.trimming.output.RR
+	output:
+		bam="output/mapping/{sample}.bam",
+		bam_unmapped="output/mapping/{sample}_unmapped.bam"
+
+	params: index=config["bwaindex"]
+	shell:
+		"bwa mem -K 100000000 -Y {params.index} -t {threads} -R 'ID={sample}' -R 'SM={sample}' {input.FR} {input.RR} |"
+		"tee >(samtools view -f 4 -o {output.bam_unmapped}) >(samtools view -bu -F 4 | samtools sort -o {output.bam}) &&"
+		"samtools index {output.bam}"
+
+
+		
+
+
