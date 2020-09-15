@@ -120,8 +120,9 @@ rule bqsr:
 		refernce_fasta="path_to_hg38",
 		knownSites_dbsnp="dbsnp_known_sites_vcf",
 		knownSites_mills="mills_and_1000_gold_standard",
-		knownSites_indel="hg38_known_indels"
-		optional_flags="--rf BadCigar --preserve_qscores_less_than 6"
+		knownSites_indel="hg38_known_indels",
+		optional_flags="--rf BadCigar --preserve_qscores_less_than 6",
+		regions="-L chr1 -L chr2 -L chr3 -L chr4 -L chr5 -L chr6 -L chr7 -L chr8 -L chr9 -L chr10 -L chr11 -L chr12 -L chr13 -L chr14 -L chr15 -L chr16 -L chr17 -L chr18 -L chr19 -L chr20 -L chr21 -L chr22"
 	shell:
 		"gatk BaseRecalibrator -I {input.bam} -R {params.reference_fasta} -O {output.bqsr}"
 		"--known-sites {params.knownSites_dbsnp} "
@@ -129,4 +130,32 @@ rule bqsr:
 		"--known-sites {params.known_Sites_indel} "
 		"{params.optional_flags} "
 
+
+rule apply_bqsr:
+	input:
+		bam=rules.markduplicates.output.bam,
+		bqsr=rules.bqsr.output.bqsr
+	params:
+		reference="hg38_reference",
+		optional_flags="--globalQScorePrior -1.0 --preserve_qscores_less_than 6 --useOriginalQualities --create-output-bam-index",
+		compression_flags="-SQQ 10 -SQQ 20 -SQQ 30"
+	output:
+		bam="output/mapping/{sample}.recalibrated.bam"
+
+	shell:
+		"gatk ApplyBQSR -R {params.reference} -I {input.bam} -bqsr{input.bqsr} -O {output.bam} --disable_indel_quanls "
+		"{params.optional_flags} {params.compression_flags}"	
+
+rule haplotypecaller:
+	input:
+		bam=rules.apply_bqsr.output.bam
+	params:
+		reference="hg38_reference",
+		other_options="-G StandardAnnotation -G StandardHGAnnotation -G AS_StandardAnnotation"
+	output:
+		gvcf="output/haplotypecaller/{sample}.g.vcf.gz"
+	
+	
+	shell:
+		"gatk HaplotypeCaller -R {params.reference} -I {input.bam} -O {output.gvcf} {params.other_options}"
 
