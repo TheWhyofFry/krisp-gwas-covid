@@ -98,10 +98,24 @@ rule markduplicates:
 
 
 #This takes te samples directly from markduplicates. As suggested, we may need to downsample first
-rule bqsr:
+
+rule downsample:
 	input:
 		bam=rules.markduplicates.output.bam
-	
+	output:
+		bam="output/mapping/{sample}.downsample.bam"
+	params:
+		fraction=0.2
+	shell:
+		"picard DownsampleSam I={input.bam} O={output.bam} P={params.fraction} CREATE_INDEX=true"
+
+
+rule bqsr:
+	input:
+		bam=rules.downsample.output.bam
+
+	output:
+		bqsr="output/bqsr/{sample}.bqsr"
 	params:
 		refernce_fasta="path_to_hg38",
 		knownSites_dbsnp="dbsnp_known_sites_vcf",
@@ -109,7 +123,7 @@ rule bqsr:
 		knownSites_indel="hg38_known_indels"
 		optional_flags="--rf BadCigar --preserve_qscores_less_than 6"
 	shell:
-		"gatk BaseRecalibrator -I {input.bam} -R {params.reference_fasta}"
+		"gatk BaseRecalibrator -I {input.bam} -R {params.reference_fasta} -O {output.bqsr}"
 		"--known-sites {params.knownSites_dbsnp} "
 		"--known-sites {params.knownSites_dbsnp} "
 		"--known-sites {params.known_Sites_indel} "
