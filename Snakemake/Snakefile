@@ -159,3 +159,96 @@ rule haplotypecaller:
 	shell:
 		"gatk HaplotypeCaller -R {params.reference} -I {input.bam} -O {output.gvcf} {params.other_options}"
 
+
+
+rule gcvfreblock:
+	input:
+		vcf=rules.haplotypecaller.output.gvcf,
+	output:
+		gvcfeblocked="output/haplotypecaller/{sample}.g.reblocked.vcf.gz"
+	params:
+		standard="-drop-low-quals -do-qual-approx --floor-blocks -GQB 10 -GWB 20 -GQB 30 -GQB 40 -GQB 50 -GQB 60",
+		reference="hg38_reference"
+
+	shell:
+		"gatk ReblockGVCF -R {input.reference} -V {input.vcf} -O {gvcfreblocked}"
+
+
+rule gvcf_samplemap:
+	input:
+		expand("output/haplotypecaller/{sample}.g.reblocked.vcf.gz", sample=wildcards.sample)
+	output
+		"output/samplemap.tsv"
+	shell:
+		"python3 scripts/joinsamples.py -i {input}"
+
+
+
+rule genomicsdb:
+	input:
+		vcfmap=rules.gvcf_samplemap.output
+
+	output:
+		directory("output/genomicdb")
+	params:
+		standard=" --batch-size 50 -L 20 --reader-threads {threads} --merge-input-intervals --consolidate --tmp-dir tmp/"
+
+	shell:
+		"gatk GenomicsDBImport --genomicsdb-workspace-path {output} --sample-name-map {input} {params}"
+
+
+
+rule genotypevcf:
+	input:
+		rules.genomicsdb.output
+	output:
+		"output/genotypes/genotypes.vcf.gz"
+
+	params:
+		standard=" -R hg38_reference -D dbsnp_file -G StandardAnnotation --only-output-calls-starting-in-intervals "
+			 " --use-new-qual-calculator  -L interval --merge-input-intervals -V gendb://{input}"
+	shell:
+		"gatk GenotypeGVCFs {params.standard} -O {output}"
+
+# fill in resource vcf files
+rule vqsr:
+	input:
+		rules.genotypevcf.output
+	params:
+		standard=" -R hg38_reference --trust-all-polymorphic -trache ${sep=' -tranche ' recalibration_tranche_values}"
+			 " -an ${sep=' -an ' recalibration_annotation_values} -mode SNP "
+			 " --resource:hapmap,known=false,training=true,truth=true,prior=15 ${hapmap_resource_vcf} "
+			 " --resource:omni,known=false,training=true,truth=true,prior=12 ${omni_resource_vcf} "
+			 " --resource:1000G,known=false,training=true,truth=false,prior=10 ${one_thousand_genomes_resource_vcf} "
+			 " --resource:dbsnp,known=true,training=false,truth=false,prior=7 ${dbsnp_resource_vcf} "
+	output:
+		recal="output/genotypes/genotypes.recal.vcf.gz",
+		tranches="output/genotypes/tranches",
+		model="output/genotypes/model.report"
+
+
+rule applyvqsr:
+	input:
+		recal=rules.vqsr.output.recal,
+		tranches=rules.vqsr.output.tranches,
+		model=rules.vqsr.output.model,
+		vcf=rules.genotypevcf.output
+
+	params:
+		standard="-R hg38_reference --recal-file {input.recal} --tranches-file {input.tranches} -mode SNP --truth-sensitivity-filter-level 0.99 --use-allele-specific-annotations --create-output-variant-index true"
+
+	output:
+		recalvcf="output/genotypes/genotypes.recal.vcf.gz"
+	shell:
+		"gatk ApplyVQSR {params.standard} -O {output.recalvcf} -V {input.vcf}"
+
+		
+
+
+	
+
+	
+	
+		
+
+		
