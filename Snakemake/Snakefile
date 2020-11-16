@@ -151,7 +151,8 @@ rule haplotypecaller:
 		bam=rules.apply_bqsr.output.bam
 	params:
 		reference="hg38_reference",
-		other_options="-G StandardAnnotation -G StandardHGAnnotation -G AS_StandardAnnotation"
+		other_options=" -G StandardAnnotation -G StandardHGAnnotation -G AS_StandardAnnotation"
+		
 	output:
 		gvcf="output/haplotypecaller/{sample}.g.vcf.gz"
 	
