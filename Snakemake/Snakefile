@@ -20,6 +20,19 @@ Requirements for input:
 """
 
 
+# Move params to a config file - keep like this for now
+
+
+
+hapmap_resource_vcf 			= "assets/vcf/hapmap_3.3.hg38.vcf.gz"
+dbsnp_resource_vcf   			= "assets/vcf/Homo_sapiens_assembly38.dbsnp138.vcf"
+one_thousand_genomes_resource_vcf 	= "assets/vcf/1000G_omni2.5.hg38.vcf.gz"
+omni_resource_vcf 			= "assets/vcf/1000G_omni2.5.hg38.vcf.gz"
+bwaindex				= "assets/bwaindex/hg38"
+
+
+
+
 # Get inputs
 def get_inputs(samplesheetfile):
 	
