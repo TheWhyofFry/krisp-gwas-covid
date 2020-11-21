@@ -19,7 +19,17 @@ Requirements for input:
 
 """
 
+import pandas as pd
+import os
 
+from scripts import dumbrename
+
+from glob import glob
+
+import pathlib
+
+for i in [1,2]:
+	pass
 # Move params to a config file - keep like this for now
 
 
@@ -43,34 +53,24 @@ hg38_known_indels = "assets/vcf/Homo_sapiens_assembly38.known_indels.vcf.gz"
 config["inputdir"] = None if "inputdir" not in config else config["inputdir"]
 config["sampletable"] = None if "sampletable" not in config else config["sampletable"]
 
-
+print(config["inputdir"])
 
 def makeoutputs():
         global config
 
         if config["inputdir"] is not None:
-                fastafiles = glob("%s/*.fastq.gz"%config["inputdir"])
+                fastafiles = glob("%s/*"%config["inputdir"])
 
         if config["sampletable"] is not None:
                 sample_dataframe = pd.read_csv(config["sampletable"]).set_index("prefix")
                 sample_dataframe["sample"] = sample_dataframe.index.values
                 return sample_dataframe
 
-
-        sample_dataframe = dumbrename.getFastqPrefixes(fastafiles,dohex=True)
-
-	pathlib.Path("inputdir/paired/").mkdir(parents=True, exists_ok=True)
-        pathlib.Path("inputdir/single/").mkdir(parents=True, exists_ok=True)
-
-	for i, row in sample_dataframe.iterrows():
-		if row.count == 1:
-			os.symlink(os.path.abspath(row.fastafiles), os.path.join("inputfiles/single/{}".format(row.fastafiles)))
-		else:
-			os.symlink(os.path.abspath(row.fastafiles), os.path.join("inputfiles/paired/{}".format(row.fastafiles)))
-		
 	
-	sample_dataframe = sample_dataframe.set_index("sample")
-
+        sample_dataframe = dumbrename.getFastqPrefixes(fastafiles,dohex=True, test_num_delim=10)
+	
+	
+	sample_dataframe["sample"] = sample_dataframe.index.values	
 	
         return sample_dataframe
 
@@ -82,16 +82,17 @@ def makeoutputs():
 
 sample_dataframe = makeoutputs()
 
-
-
+print(sample_dataframe)
 
 # Placeholder for now 
 rule all:
-
-	final=expand("output/{sample}/final.txt", sample=sample_dataframe["sample"].drop_duplicates.values()),
-	trim_single=expand("output/trimmed/{sample}_U.fq.gz",sample=sample_dataframe[sample_dataframe.count == 1]["sample"]),
-	trim_paired=expand("output/trimmed/{sample}_R{num}.fq.gz",sample=sample_dataframe[sample_dataframe.count == 2]["sample"], num=[1,2]),
-	bam=expand("output/mapping/{sample}.bam",sample=sample_dataframe["sample"].drop_duplicates().values),
+	input:
+#	final=expand("output/{sample}/final.txt", sample=sample_dataframe["sample"].drop_duplicates.values()),
+	#trim_single=expand("output/trimmed/{sample}_U.fq.gz",sample=sample_dataframe[sample_dataframe.count == 1]["sample"]),
+	#trim_paired=expand("output/trimmed/{sample}_R{num}.fq.gz",sample=sample_dataframe[sample_dataframe.count == 2]["sample"], num=[1,2]),
+		trim_single=expand("output/trimmed/{sample}_U.fq.gz",sample=sample_dataframe[sample_dataframe.counts == 1]["sample"].values),
+		trim_paried=expand("output/trimmed/{sample}_R{num}.fq.gz",sample=sample_dataframe[sample_dataframe.counts == 2]["sample"].drop_duplicates().values,num=[1,2]),
+		bam=expand("output/mapping/{sample}.bam",sample=sample_dataframe["sample"].drop_duplicates().values),
 
 
 
@@ -100,10 +101,10 @@ rule all:
 
 
 # Pretty ugly - but it willl work for now
-
+ruleorder: trimming_single > trimming
 rule trimming_single:
 	input:
-		R=lambda wildcards: samplesheet.loc
+		R=lambda wildcards: sample_dataframe.loc[wildcards.sample,].fastq
 
 	output:
 		R="output/trimmed/{sample}_U.fq.gz"
@@ -112,14 +113,14 @@ rule trimming_single:
 
 rule trimming:
 	input: 
-		FR=lambda wildcards: samplesheet.loc[wildcards.sample].values[0]
-		RR=lambda wildcards: samplesheet.loc[wildcards.sample].values[1]
+		FR=lambda wildcards: sample_dataframe.loc[wildcards.sample,].fastq.values[0],
+		RR=lambda wildcards: sample_dataframe.loc[wildcards.sample,].fastq.values[1]
 
 	output: 
-		FR="output/{sample}/{sample}_R1.fq.gz",
-		RR="output/{sample}/{sample}_R2.fq.gz",
-		FRu="output/{sample}/{sample}_U_R1.fq.gz",
-		RRu="output/{sample}/{sample}_U_R2.fq.gz"
+		FR="output/trimmed/{sample}_R1.fq.gz",
+		RR="output/trimmed/{sample}_R2.fq.gz",
+		FRu="output/trimmed/{sample}_U_R1.fq.gz",
+		RRu="output/trimmed/{sample}_U_R2.fq.gz"
 		
 
 	shell:
@@ -127,6 +128,7 @@ rule trimming:
 		"SLIDINGWINDOW:4:20"
 
 # Not the correct way - need to configure for .alt files too
+ruleorder: bwa_mapping_single > bwa_mapping
 
 rule bwa_mapping_single:
 	input:
@@ -135,9 +137,10 @@ rule bwa_mapping_single:
 		bam="output/mapping/{sample}.bam",
 		bwaindex="output/mapping/{sample}.bam.bai",
 		bam_unmapped="output/mapping/{sample}_unmapped.bam"
-	params: index="{bwaindex}"
+	params: index=bwaindex,
+		sample=lambda wildcards: wildcards.sample
 	shell:
-		"bwa mem -K 100000000 -Y {params.index} -t {threads} -R '@RG\tID:{wildcards.sample}\tSM:{wildcards.sample}'  {input.FR} {input.RR} |"
+		"bwa mem -K 100000000 -Y {params.index} -t {threads} -R '@RG\tID:{params.sample}\tSM:{params.sample}'  {input} |"
 		"tee >(samtools view -f 4 -o {output.bam_unmapped}) >(samtools view -bu -F 4 | samtools sort -o {output.bam}) &&"
 		"samtools index {output.bam}"
 
@@ -147,13 +150,14 @@ rule bwa_mapping:
 		RR=rules.trimming.output.RR
 	output:
 		bam="output/mapping/{sample}.bam",
-		bamindex="output/mapping/{sample}.bam.bai"
+		bamindex="output/mapping/{sample}.bam.bai",
 		bam_unmapped="output/mapping/{sample}_unmapped.bam"
 
-	params: index="{bwaindex}"
+	params: index="{bwaindex}",
+		sample=lambda wildcards: wildcards.sample
 	threads: 4
 	shell:
-		"bwa mem -K 100000000 -Y {params.index} -t {threads} -R '@RG\tID:{wildcards.sample}\tSM:{wildcards.sample}'  {input.FR} {input.RR} |"
+		"bwa mem -K 100000000 -Y {params.index} -t {threads} -R '@RG\tID:{params.sample}\tSM:{params.sample}'  {input.FR} {input.RR} |"
 		"tee >(samtools view -f 4 -o {output.bam_unmapped}) >(samtools view -bu -F 4 | samtools sort -o {output.bam}) &&"
 		"samtools index {output.bam}"
 
@@ -251,8 +255,8 @@ rule gcvfreblock:
 
 rule gvcf_samplemap:
 	input:
-		expand("output/haplotypecaller/{sample}.g.reblocked.vcf.gz", sample=wildcards.sample)
-	output
+		lambda wildcards: expand("output/haplotypecaller/{sample}.g.reblocked.vcf.gz", sample=wildcards.sample)
+	output:
 		"output/samplemap.tsv"
 	shell:
 		"python3 scripts/joinsamples.py -i {input}"
