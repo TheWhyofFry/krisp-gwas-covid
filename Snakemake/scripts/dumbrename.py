@@ -8,7 +8,7 @@ from glob import glob
 
 def getFastqPrefixes(fastqfiles, delim="_",test_num_delim=None, explicit_delim=None, getmaxlen=False, dohex=False, hexfun=hashlib.md5):
     fastqfiles_base = [os.path.basename(filename) for filename in fastqfiles]
-    test_num_delim = fastqfiles[0].count(delim)
+    test_num_delim = fastqfiles[0].count(delim) if test_num_delim is None else test_num_delim
 
 
     fastqfiles_series = pd.Series(fastqfiles_base,index=fastqfiles)
@@ -16,7 +16,7 @@ def getFastqPrefixes(fastqfiles, delim="_",test_num_delim=None, explicit_delim=N
     top_counts = 0
     for i in range(1, test_num_delim):
         counts = sum( pd.Series([ delim.join(f.split(delim)[:i]) for f in fastqfiles_base]).value_counts() == 2)
-        
+        counts = counts - sum(pd.Series([ delim.join(f.split(delim)[:i]) for f in fastqfiles_base]).value_counts() > 2)
         if getmaxlen:
             if counts >= top_counts:
                 top_counts = counts
