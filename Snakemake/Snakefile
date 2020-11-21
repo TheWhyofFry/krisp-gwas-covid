@@ -30,28 +30,43 @@ one_thousand_genomes_resource_vcf 	= "assets/vcf/1000G_omni2.5.hg38.vcf.gz"
 omni_resource_vcf 			= "assets/vcf/1000G_omni2.5.hg38.vcf.gz"
 bwaindex				= "assets/bwaindex/hg38"
 
+# Check the dbsnp ref
+dbsnp_known_sites_vcf = "assets/vcf/Homo_sapiens_assembly38.dbsnp138.vcf" 
+mills_and_1000_gold_standard = "assets/vcf/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz"
+hg38_known_indels = "assets/vcf/Homo_sapiens_assembly38.known_indels.vcf.gz"
 
 
 
-# Get inputs
-def get_inputs(samplesheetfile):
-	
-	samplesheet = pd.read_tsv(samplesheetfile)
-
-	samplesheet = samplesheet.set_index("sample",drop=False)
-
-	samplesheet = samplesheet.sort_values(["sample","file"])
-
-	return samplesheet
 
 
 
-samplesheet = get_inputs(config["samplesheet"])
+config["inputdir"] = None if "inputdir" not in config else config["inputdir"]
+config["sampletable"] = None if "sampletable" not in config else config["sampletable"]
+
+
+
+def makeoutputs():
+        global config
+
+        if config["inputdir"] is not None:
+                fastafiles = glob("%s/*.fastq.gz"%config["inputdir"])
+
+        if config["sampletable"] is not None:
+                sample_dataframe = pd.read_csv(config["sampletable"]).set_index("prefix")
+                sample_dataframe["sample"] = sample_dataframe.index.values
+                return sample_dataframe
+
+        sample_dataframe = dumbrename.getFastqPrefixes(fastafiles,dohex=True)
+        sample_dataframe = sample_dataframe[sample_dataframe.counts == 2]
+        return sample_dataframe
+
 
 
 
 
 # Should move this to a proper config file
+
+sample_dataframe = makeoutputs()
 
 
 
@@ -59,7 +74,8 @@ samplesheet = get_inputs(config["samplesheet"])
 # Placeholder for now 
 rule all:
 
-	expand("output/{sample}/final.txt", sample=samplesheet["sample"].drop_duplicates.values())
+	final=expand("output/{sample}/final.txt", sample=sample_dataframe["sample"].drop_duplicates.values()),
+	
 
 
 # Pretty ugly - but it willl work for now
@@ -131,9 +147,9 @@ rule bqsr:
 		bqsr="output/bqsr/{sample}.bqsr"
 	params:
 		refernce_fasta="path_to_hg38",
-		knownSites_dbsnp="dbsnp_known_sites_vcf",
-		knownSites_mills="mills_and_1000_gold_standard",
-		knownSites_indel="hg38_known_indels",
+		knownSites_dbsnp="{dbsnp_known_sites_vcf}",
+		knownSites_mills="{mills_and_1000_gold_standard}",
+		knownSites_indel="{hg38_known_indels}",
 		optional_flags="--rf BadCigar --preserve_qscores_less_than 6",
 		regions="-L chr1 -L chr2 -L chr3 -L chr4 -L chr5 -L chr6 -L chr7 -L chr8 -L chr9 -L chr10 -L chr11 -L chr12 -L chr13 -L chr14 -L chr15 -L chr16 -L chr17 -L chr18 -L chr19 -L chr20 -L chr21 -L chr22"
 	shell:
