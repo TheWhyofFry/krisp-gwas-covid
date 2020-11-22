@@ -34,7 +34,7 @@ def getFastqPrefixes(fastqfiles, delim="_",test_num_delim=None, explicit_delim=N
     fastq_prefixmap["sample"] = fastq_prefixmap.index
 
     if dohex:
-        fastq_prefixmap["hash"] = fastq_prefixmap.fastq.apply(lambda x:hexfun(open(x,"rb").read()).hexdigest())
+        fastq_prefixmap["hash"] = fastq_prefixmap.fastq.apply(lambda x:hexfun(open(x,"rb").read(1000000)).hexdigest())
 
     return fastq_prefixmap
 
