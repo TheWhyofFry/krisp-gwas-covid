@@ -82,63 +82,64 @@ def makeoutputs():
 
 sample_dataframe = makeoutputs()
 
+sample_paired_end = sample_dataframe[sample_dataframe.counts == 2]
+sample_single_end = sample_dataframe[sample_dataframe.counts == 1]
+
+print(sample_paired_end)
+print(sample_single_end)
+
 print(sample_dataframe)
 
 # Placeholder for now 
 rule all:
 	input:
-#	final=expand("output/{sample}/final.txt", sample=sample_dataframe["sample"].drop_duplicates.values()),
-	#trim_single=expand("output/trimmed/{sample}_U.fq.gz",sample=sample_dataframe[sample_dataframe.count == 1]["sample"]),
-	#trim_paired=expand("output/trimmed/{sample}_R{num}.fq.gz",sample=sample_dataframe[sample_dataframe.count == 2]["sample"], num=[1,2]),
-		trim_single=expand("output/trimmed/{sample}_U.fq.gz",sample=sample_dataframe[sample_dataframe.counts == 1]["sample"].values),
-		trim_paried=expand("output/trimmed/{sample}_R{num}.fq.gz",sample=sample_dataframe[sample_dataframe.counts == 2]["sample"].drop_duplicates().values,num=[1,2]),
-		bam=expand("output/mapping/{sample}.bam",sample=sample_dataframe["sample"].drop_duplicates().values),
+		trim_single=expand("output/trimmed/single_end/{sample_single}.fq.gz",sample_single=sample_single_end["sample"].values),
+		trim_paired=expand("output/trimmed/paired_end/{sample_paired}_R{num}.fq.gz",sample_paired=sample_paired_end["sample"].drop_duplicates().values,num=[1,2]),
+		bam_single=expand("output/mapping/single_end/{sample_single}.bam",sample_single=sample_single_end["sample"].drop_duplicates().values),
+		bam_paired=expand("output/mapping/paired_end/{sample_paired}.bam",sample_paired=sample_paired_end["sample"].drop_duplicates().values),
+		bam_gather=expand("output/mapping/{sample}.bam",sample=sample_dataframe["sample"].drop_duplicates().values)
+		
 
 
-
-
-	
-
+print(expand("output/trimmed/{sample}_U.fq.gz",sample=sample_single_end["sample"].values))
+print(expand("output/trimmed/{sample}_R{num}.fq.gz",sample=sample_paired_end["sample"].drop_duplicates().values,num=[1,2]))
 
 # Pretty ugly - but it willl work for now
-ruleorder: trimming_single > trimming
 rule trimming_single:
 	input:
-		R=lambda wildcards: sample_dataframe.loc[wildcards.sample,].fastq
+		R=lambda wildcards: sample_single_end[sample_single_end["sample"] == wildcards.sample_single].fastq
 
 	output:
-		R="output/trimmed/{sample}_U.fq.gz"
+		R="output/trimmed/single_end/{sample_single}.fq.gz"
 	shell:
-		"trimmomatic PE -threads {threads} {input.R} {output.R} SLIDINGWINDOW:4:20"
+		"trimmomatic SE -threads {threads} {input.R} {output.R} SLIDINGWINDOW:4:20"
 
 rule trimming:
 	input: 
-		FR=lambda wildcards: sample_dataframe.loc[wildcards.sample,].fastq.values[0],
-		RR=lambda wildcards: sample_dataframe.loc[wildcards.sample,].fastq.values[1]
+		R=lambda wildcards: sample_paired_end[sample_paired_end["sample"] == wildcards.sample_paired].fastq.values,
 
 	output: 
-		FR="output/trimmed/{sample}_R1.fq.gz",
-		RR="output/trimmed/{sample}_R2.fq.gz",
-		FRu="output/trimmed/{sample}_U_R1.fq.gz",
-		RRu="output/trimmed/{sample}_U_R2.fq.gz"
+		FR="output/trimmed/paired_end/{sample_paired}_R1.fq.gz",
+		RR="output/trimmed/paired_end/{sample_paired}_R2.fq.gz",
+		FRu="output/trimmed/paired_end/{sample_paired}_U_R1.fq.gz",
+		RRu="output/trimmed/paired_end/{sample_paired}_U_R2.fq.gz"
 		
 
 	shell:
-		"trimmomatic PE -threads {threads} {input.FR} {input.RR} {output.FR} {output.FRu} {output.RR} {output.RRu} "
+		"trimmomatic PE -validatePairs -threads {threads} {input.R} {output.FR} {output.FRu} {output.RR} {output.RRu} "
 		"SLIDINGWINDOW:4:20"
 
 # Not the correct way - need to configure for .alt files too
-ruleorder: bwa_mapping_single > bwa_mapping
 
 rule bwa_mapping_single:
 	input:
-		R=rules.trimming_single.output
+		R="output/trimmed/single_end/{sample_single}.fq.gz"
 	output:
-		bam="output/mapping/{sample}.bam",
-		bwaindex="output/mapping/{sample}.bam.bai",
-		bam_unmapped="output/mapping/{sample}_unmapped.bam"
+		bam="output/mapping/single_end/{sample_single}.bam",
+		bwaindex="output/mapping/single_end/{sample_single}.bam.bai",
+		bam_unmapped="output/mapping/single_end/{sample_single}_unmapped.bam"
 	params: index=bwaindex,
-		sample=lambda wildcards: wildcards.sample
+		sample=lambda wildcards: wildcards.sample_single
 	shell:
 		"bwa mem -K 100000000 -Y {params.index} -t {threads} -R '@RG\tID:{params.sample}\tSM:{params.sample}'  {input} |"
 		"tee >(samtools view -f 4 -o {output.bam_unmapped}) >(samtools view -bu -F 4 | samtools sort -o {output.bam}) &&"
@@ -146,26 +147,33 @@ rule bwa_mapping_single:
 
 rule bwa_mapping:
 	input: 
-		FR=rules.trimming.output.FR,
-		RR=rules.trimming.output.RR
+		FR="output/trimmed/paired_end/{sample_paired}_R1.fq.gz",
+		RR="output/trimmed/paired_end/{sample_paired}_R2.fq.gz"
 	output:
-		bam="output/mapping/{sample}.bam",
-		bamindex="output/mapping/{sample}.bam.bai",
-		bam_unmapped="output/mapping/{sample}_unmapped.bam"
+		bam="output/mapping/paired_end/{sample_paired}.bam",
+		bamindex="output/mapping/paired_end/{sample_paired}.bam.bai",
+		bam_unmapped="output/mapping/paired_end/{sample_paired}_unmapped.bam"
 
-	params: index="{bwaindex}",
-		sample=lambda wildcards: wildcards.sample
+	params: index=bwaindex,
+		sample=lambda wildcards: wildcards.sample_paired
 	threads: 4
 	shell:
 		"bwa mem -K 100000000 -Y {params.index} -t {threads} -R '@RG\tID:{params.sample}\tSM:{params.sample}'  {input.FR} {input.RR} |"
 		"tee >(samtools view -f 4 -o {output.bam_unmapped}) >(samtools view -bu -F 4 | samtools sort -o {output.bam}) &&"
 		"samtools index {output.bam}"
 
+rule bwa_gather:
+	input:
+		expand("output/mapping/paired_end/{sample}.bam",sample=sample_paired_end["sample"].drop_duplicates().values),
+		expand("output/mapping/single_end/{sample}.bam",sample=sample_single_end["sample"].drop_duplicates().values)
+
+	output:
+		expand("output/mapping/{sample}.bam",sample=sample_dataframe["sample"].drop_duplicates().values)
 
 rule markduplicates:
 	input:
-		bai=rules.bwa_mapping.output.bamindex,
-		bam=rules.bwa_mapping.output.bam
+		bai="output/mapping/{sample}.bam.bai",
+		bam="output/mapping/{sample}.bam"
 	output:
 		bam="output/mapping/{sample}.markduplicates.bam",
 		metrics="output/reports/{sample}.markduplicates.metrics.txt"
