@@ -110,7 +110,7 @@ rule trimming_single:
 		R=lambda wildcards: sample_single_end[sample_single_end["sample"] == wildcards.sample_single].fastq
 
 	output:
-		R="output/trimmed/single_end/{sample_single}.fq.gz"
+		R="output/trimmed/single_end/{sample_single}_trimmed.fq.gz"
 	
 	threads: 4
 	
