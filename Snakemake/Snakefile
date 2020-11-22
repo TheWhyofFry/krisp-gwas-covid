@@ -135,7 +135,7 @@ rule trimming:
 		basename="{sample_paired}"
 	threads: 4
 	shell:
-		"trim_galore --cores {threads} --paired {input.FR} {input.RR} -o {params.folder} --basename {params.basename} > {log} 2> {log}"
+		"trim_galore --cores {threads} --paired {input.R} -o {params.folder} --basename {params.basename} > {log} 2> {log}"
 # Not the correct way - need to configure for .alt files too
 
 rule bwa_mapping_single:
