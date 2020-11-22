@@ -290,7 +290,7 @@ rule genomicsdb:
 	output:
 		directory("output/genomicdb")
 	params:
-		standard=" --batch-size 50 -L 20 --reader-threads {threads} --merge-input-intervals --consolidate --tmp-dir tmp/"
+		standard=" --batch-size 50 -L 20 --reader-threads {threads} --merge-input-intervals --consolidate --tmp-dir /dev/shm/ "
 
 	shell:
 		"gatk GenomicsDBImport --genomicsdb-workspace-path {output} --sample-name-map {input} {params}"
