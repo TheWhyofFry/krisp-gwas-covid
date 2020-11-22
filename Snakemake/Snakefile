@@ -141,6 +141,7 @@ rule bwa_mapping_single:
 		bam_unmapped="output/mapping/single_end/{sample_single}_unmapped.bam"
 	params: index=bwaindex,
 		sample=lambda wildcards: wildcards.sample_single
+	threads: 4
 	shell:
 		"bwa mem -K 100000000 -Y {params.index} -t {threads} -R '@RG\\tID:{params.sample}\\tSM:{params.sample}'  {input} |"
 		"tee >(samtools view -f 4 -o {output.bam_unmapped}) >(samtools view -bu -F 4 | samtools sort -o {output.bam}) > /dev/zero &&"
