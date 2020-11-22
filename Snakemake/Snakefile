@@ -153,8 +153,8 @@ rule bwa_mapping_single:
 
 rule bwa_mapping:
 	input: 
-		FR="output/trimmed/paired_end/{sample_paired}_R1.fq.gz",
-		RR="output/trimmed/paired_end/{sample_paired}_R2.fq.gz"
+		FR="output/trimmed/paired_end/{sample_paired}_val_1.fq.gz",
+		RR="output/trimmed/paired_end/{sample_paired}_val_2.fq.gz"
 	output:
 		bam="output/mapping/paired_end/{sample_paired}.bam",
 		bam_unmapped="output/mapping/paired_end/{sample_paired}_unmapped.bam"
