@@ -111,25 +111,31 @@ rule trimming_single:
 
 	output:
 		R="output/trimmed/single_end/{sample_single}.fq.gz"
+	
 	threads: 4
-	shell:
-		"trimmomatic SE -threads {threads} {input.R} {output.R} SLIDINGWINDOW:4:20"
+	
+	params:
+		folder="output/trimmed/single_end",
+		basename="{sample_single}"
 
+	log: "output/log/{sample_single}_trimming.log"
+	shell:
+		"trim_galore --cores {threads} {input.R} -o {params.folder} --basename {params.basename} > {log} 2> {log}"
 rule trimming:
 	input: 
 		R=lambda wildcards: sample_paired_end[sample_paired_end["sample"] == wildcards.sample_paired].fastq.values,
 
 	output: 
-		FR="output/trimmed/paired_end/{sample_paired}_R1.fq.gz",
-		RR="output/trimmed/paired_end/{sample_paired}_R2.fq.gz",
-		FRu="output/trimmed/paired_end/{sample_paired}_U_R1.fq.gz",
-		RRu="output/trimmed/paired_end/{sample_paired}_U_R2.fq.gz"
-		
+		FR="output/trimmed/paired_end/{sample_paired}_val_1.fq.gz",
+		RR="output/trimmed/paired_end/{sample_paired}_val_2.fq.gz",
+	log: "output/log/{sample_paired}_trimming.log"
+
+	params:
+		folder="output/trimmed/paired_end",
+		basename="{sample_paired}"
 	threads: 4
 	shell:
-		"trimmomatic PE -validatePairs -threads {threads} {input.R} {output.FR} {output.FRu} {output.RR} {output.RRu} "
-		"SLIDINGWINDOW:4:20"
-
+		"trim_galore --cores {threads} --paired {input.FR} {input.RR} -o {params.folder} --basename {params.basename} > {log} 2> {log}"
 # Not the correct way - need to configure for .alt files too
 
 rule bwa_mapping_single:
@@ -137,15 +143,13 @@ rule bwa_mapping_single:
 		R="output/trimmed/single_end/{sample_single}.fq.gz"
 	output:
 		bam="output/mapping/single_end/{sample_single}.bam",
-		bwaindex="output/mapping/single_end/{sample_single}.bam.bai",
 		bam_unmapped="output/mapping/single_end/{sample_single}_unmapped.bam"
 	params: index=bwaindex,
 		sample=lambda wildcards: wildcards.sample_single
 	threads: 4
 	shell:
 		"bwa mem -K 100000000 -Y {params.index} -t {threads} -R '@RG\\tID:{params.sample}\\tSM:{params.sample}'  {input} |"
-		"tee >(samtools view -f 4 -o {output.bam_unmapped}) >(samtools view -bu -F 4 | samtools sort -o {output.bam}) > /dev/zero &&"
-		"samtools index {output.bam}"
+		"tee >(samtools view -f 4 -o {output.bam_unmapped}) >(samtools view -bu -F 4 | samtools sort -o {output.bam}) > /dev/zero"
 
 rule bwa_mapping:
 	input: 
@@ -153,7 +157,6 @@ rule bwa_mapping:
 		RR="output/trimmed/paired_end/{sample_paired}_R2.fq.gz"
 	output:
 		bam="output/mapping/paired_end/{sample_paired}.bam",
-		bamindex="output/mapping/paired_end/{sample_paired}.bam.bai",
 		bam_unmapped="output/mapping/paired_end/{sample_paired}_unmapped.bam"
 
 	params: index=bwaindex,
@@ -161,8 +164,7 @@ rule bwa_mapping:
 	threads: 4
 	shell:
 		"bwa mem -K 100000000 -Y {params.index} -t {threads} -R '@RG\\tID:{params.sample}\\tSM:{params.sample}'  {input.FR} {input.RR} |"
-		"tee >(samtools view -f 4 -o {output.bam_unmapped}) >(samtools view -bu -F 4 | samtools sort -o {output.bam}) > /dev/zero &&"
-		"samtools index {output.bam}"
+		"tee >(samtools view -f 4 -o {output.bam_unmapped}) >(samtools view -bu -F 4 | samtools sort -o {output.bam}) > /dev/zero"
 
 rule bwa_gather:
 	input:
