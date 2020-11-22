@@ -67,7 +67,7 @@ def makeoutputs():
                 return sample_dataframe
 
 	
-        sample_dataframe = dumbrename.getFastqPrefixes(fastafiles,dohex=True, test_num_delim=10)
+        sample_dataframe = dumbrename.getFastqPrefixes(fastafiles,dohex=True, test_num_delim=4,getmaxlen=True)
 	
 	
 	sample_dataframe["sample"] = sample_dataframe.index.values	
@@ -271,17 +271,21 @@ rule gcvfreblock:
 
 rule gvcf_samplemap:
 	input:
-		lambda wildcards: expand("output/haplotypecaller/{sample}.g.reblocked.vcf.gz", sample=wildcards.sample)
+		expand("output/haplotypecaller/{sample}.g.reblocked.vcf.gz", sample=sample_dataframe["sample"].drop_duplicates()["sample"].values)
 	output:
 		"output/samplemap.tsv"
-	shell:
-		"python3 scripts/joinsamples.py -i {input}"
+	run:
+		with open("output/samplemap.tsv","w") as samplemapfile:
+			for sample in sample_dataframe["samples"].drop_duplicates()["sample"].values:
+				samplemapfile.write("%s\%s\n"%(sample, "output/haplotypecaller/{sample}.g.reblocked.vcf.gz".format(sample=sample)))
+	
 
 
 
 rule genomicsdb:
 	input:
 		vcfmap=rules.gvcf_samplemap.output
+
 
 	output:
 		directory("output/genomicdb")
