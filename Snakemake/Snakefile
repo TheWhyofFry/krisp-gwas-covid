@@ -110,8 +110,8 @@ rule trimming_single:
 		R=lambda wildcards: sample_single_end[sample_single_end["sample"] == wildcards.sample_single].fastq
 
 	output:
-	threads: 4
 		R="output/trimmed/single_end/{sample_single}.fq.gz"
+	threads: 4
 	shell:
 		"trimmomatic SE -threads {threads} {input.R} {output.R} SLIDINGWINDOW:4:20"
 
