@@ -173,6 +173,10 @@ rule bwa_gather:
 
 	output:
 		expand("output/mapping/{sample}.bam",sample=sample_dataframe["sample"].drop_duplicates().values)
+	run:
+		for f in input:
+			basename = os.path.basename(f)
+			os.symlink(f, "output/mapping/{sample}".format(sample=f))
 
 rule markduplicates:
 	input:
