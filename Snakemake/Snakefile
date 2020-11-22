@@ -38,7 +38,7 @@ hapmap_resource_vcf 			= "assets/vcf/hapmap_3.3.hg38.vcf.gz"
 dbsnp_resource_vcf   			= "assets/vcf/Homo_sapiens_assembly38.dbsnp138.vcf"
 one_thousand_genomes_resource_vcf 	= "assets/vcf/1000G_omni2.5.hg38.vcf.gz"
 omni_resource_vcf 			= "assets/vcf/1000G_omni2.5.hg38.vcf.gz"
-bwaindex				= "assets/bwaindex/hg38"
+bwaindex				= "assets/bwaindex/Homo_sapiens_assembly38.fasta.64"
 
 # Check the dbsnp ref
 dbsnp_known_sites_vcf = "assets/vcf/Homo_sapiens_assembly38.dbsnp138.vcf" 
@@ -110,6 +110,7 @@ rule trimming_single:
 		R=lambda wildcards: sample_single_end[sample_single_end["sample"] == wildcards.sample_single].fastq
 
 	output:
+	threads: 4
 		R="output/trimmed/single_end/{sample_single}.fq.gz"
 	shell:
 		"trimmomatic SE -threads {threads} {input.R} {output.R} SLIDINGWINDOW:4:20"
@@ -124,7 +125,7 @@ rule trimming:
 		FRu="output/trimmed/paired_end/{sample_paired}_U_R1.fq.gz",
 		RRu="output/trimmed/paired_end/{sample_paired}_U_R2.fq.gz"
 		
-
+	threads: 4
 	shell:
 		"trimmomatic PE -validatePairs -threads {threads} {input.R} {output.FR} {output.FRu} {output.RR} {output.RRu} "
 		"SLIDINGWINDOW:4:20"
@@ -141,7 +142,7 @@ rule bwa_mapping_single:
 	params: index=bwaindex,
 		sample=lambda wildcards: wildcards.sample_single
 	shell:
-		"bwa mem -K 100000000 -Y {params.index} -t {threads} -R '@RG\tID:{params.sample}\tSM:{params.sample}'  {input} |"
+		"bwa mem -K 100000000 -Y {params.index} -t {threads} -R '@RG\\tID:{params.sample}\\tSM:{params.sample}'  {input} |"
 		"tee >(samtools view -f 4 -o {output.bam_unmapped}) >(samtools view -bu -F 4 | samtools sort -o {output.bam}) &&"
 		"samtools index {output.bam}"
 
@@ -158,7 +159,7 @@ rule bwa_mapping:
 		sample=lambda wildcards: wildcards.sample_paired
 	threads: 4
 	shell:
-		"bwa mem -K 100000000 -Y {params.index} -t {threads} -R '@RG\tID:{params.sample}\tSM:{params.sample}'  {input.FR} {input.RR} |"
+		"bwa mem -K 100000000 -Y {params.index} -t {threads} -R '@RG\\tID:{params.sample}\\tSM:{params.sample}'  {input.FR} {input.RR} |"
 		"tee >(samtools view -f 4 -o {output.bam_unmapped}) >(samtools view -bu -F 4 | samtools sort -o {output.bam}) &&"
 		"samtools index {output.bam}"
 
