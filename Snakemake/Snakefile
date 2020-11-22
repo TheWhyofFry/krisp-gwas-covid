@@ -271,12 +271,12 @@ rule gcvfreblock:
 
 rule gvcf_samplemap:
 	input:
-		expand("output/haplotypecaller/{sample}.g.reblocked.vcf.gz", sample=sample_dataframe["sample"].drop_duplicates()["sample"].values)
+		expand("output/haplotypecaller/{sample}.g.reblocked.vcf.gz", sample=sample_dataframe["sample"].drop_duplicates().values)
 	output:
 		"output/samplemap.tsv"
 	run:
 		with open("output/samplemap.tsv","w") as samplemapfile:
-			for sample in sample_dataframe["samples"].drop_duplicates()["sample"].values:
+			for sample in sample_dataframe["sample"].drop_duplicates().values:
 				samplemapfile.write("%s\%s\n"%(sample, "output/haplotypecaller/{sample}.g.reblocked.vcf.gz".format(sample=sample)))
 	
 
