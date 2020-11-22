@@ -143,7 +143,7 @@ rule bwa_mapping_single:
 		sample=lambda wildcards: wildcards.sample_single
 	shell:
 		"bwa mem -K 100000000 -Y {params.index} -t {threads} -R '@RG\\tID:{params.sample}\\tSM:{params.sample}'  {input} |"
-		"tee >(samtools view -f 4 -o {output.bam_unmapped}) >(samtools view -bu -F 4 | samtools sort -o {output.bam}) &&"
+		"tee >(samtools view -f 4 -o {output.bam_unmapped}) >(samtools view -bu -F 4 | samtools sort -o {output.bam}) > /dev/zero &&"
 		"samtools index {output.bam}"
 
 rule bwa_mapping:
@@ -160,7 +160,7 @@ rule bwa_mapping:
 	threads: 4
 	shell:
 		"bwa mem -K 100000000 -Y {params.index} -t {threads} -R '@RG\\tID:{params.sample}\\tSM:{params.sample}'  {input.FR} {input.RR} |"
-		"tee >(samtools view -f 4 -o {output.bam_unmapped}) >(samtools view -bu -F 4 | samtools sort -o {output.bam}) &&"
+		"tee >(samtools view -f 4 -o {output.bam_unmapped}) >(samtools view -bu -F 4 | samtools sort -o {output.bam}) > /dev/zero &&"
 		"samtools index {output.bam}"
 
 rule bwa_gather:
