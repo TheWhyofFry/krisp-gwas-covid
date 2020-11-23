@@ -99,11 +99,11 @@ rule all:
 		trim_paired=expand("output/trimmed/paired_end/{sample_paired}_val_{num}.fq.gz",sample_paired=sample_paired_end["sample"].drop_duplicates().values,num=[1,2]),
 		bam_single=expand("output/mapping/single_end/{sample_single}.bam",sample_single=sample_single_end["sample"].drop_duplicates().values),
 		bam_paired=expand("output/mapping/paired_end/{sample_paired}.bam",sample_paired=sample_paired_end["sample"].drop_duplicates().values),
-		bam_gather=expand("output/mapping/{sample}.bam",sample=sample_dataframe["sample"].drop_duplicates().values)
+		bam_gather=expand("output/mapping/{sample}.bam",sample=sample_dataframe["sample"].drop_duplicates().values),
 
 		#bam_downsample=expand("output/mapping/{sample}.downsample.bam",sample=all_samples)
 
-		bqsr = expand("output/bqsr/{sample}.bqsr", sample=all_samples)
+		bqsr = expand("output/bqsr/{sample}.bqsr", sample=all_samples),
 		
 
 
