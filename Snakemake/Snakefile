@@ -283,7 +283,7 @@ rule gcvfreblock:
 		reference="hg38_reference"
 
 	shell:
-		"gatk ReblockGVCF -R {input.reference} -V {input.vcf} -O {gvcfreblocked}"
+		"gatk ReblockGVCF -R {params.reference} -V {input.vcf} -O {gvcfreblocked}"
 
 
 rule gvcf_samplemap:
