@@ -225,7 +225,7 @@ rule bqsr:
 	output:
 		bqsr="output/bqsr/{sample}.bqsr"
 	params:
-		refernce_fasta=hg38_genome,
+		reference_fasta=hg38_genome,
 		knownSites_dbsnp=dbsnp_known_sites_vcf,
 		knownSites_mills=mills_and_1000_gold_standard,
 		knownSites_indel=hg38_known_indels,
@@ -235,7 +235,7 @@ rule bqsr:
 		"gatk BaseRecalibrator -I {input.bam} -R {params.reference_fasta} -O {output.bqsr}"
 		"--known-sites {params.knownSites_dbsnp} "
 		"--known-sites {params.knownSites_dbsnp} "
-		"--known-sites {params.known_Sites_indel} "
+		"--known-sites {params.knownSites_indel} "
 		"{params.optional_flags} "
 
 
