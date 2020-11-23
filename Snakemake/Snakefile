@@ -199,7 +199,7 @@ rule markduplicates:
 		bai="output/mapping/{sample}.bam.bai",
 		bam="output/mapping/{sample}.bam"
 	output:
-		bam="output/mapping/{sample}.markduplicates.bam",
+		bam="output/mapping/duplicates/{sample}.markduplicates.bam",
 		metrics="output/reports/{sample}.markduplicates.metrics.txt"
 
 	shell:
@@ -213,7 +213,7 @@ rule downsample:
 	input:
 		bam=rules.markduplicates.output.bam
 	output:
-		bam="output/mapping/{sample}.downsample.bam"
+		bam="output/mapping/downsample/{sample}.downsample.bam"
 	params:
 		fraction=0.2
 	shell:
