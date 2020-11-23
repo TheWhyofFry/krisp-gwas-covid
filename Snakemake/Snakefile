@@ -277,13 +277,14 @@ rule gcvfreblock:
 	input:
 		vcf=rules.haplotypecaller.output.gvcf,
 	output:
-		gvcfeblocked="output/haplotypecaller/{sample}.g.reblocked.vcf.gz"
+		gvcfreblocked="output/haplotypecaller/{sample}.g.reblocked.vcf.gz"
+
 	params:
 		standard="-drop-low-quals -do-qual-approx --floor-blocks -GQB 10 -GWB 20 -GQB 30 -GQB 40 -GQB 50 -GQB 60",
 		reference="hg38_reference"
 
 	shell:
-		"gatk ReblockGVCF -R {params.reference} -V {input.vcf} -O {gvcfreblocked}"
+		"gatk ReblockGVCF -R {params.reference} -V {input.vcf} -O {output.gvcfreblocked}"
 
 
 rule gvcf_samplemap:
@@ -337,8 +338,8 @@ rule vqsr:
 		tranches="output/genotypes/tranches",
 		model="output/genotypes/model.report"
 	shell:
-		"gatk vqsr -R hg38_reference --trust-all-polymorphic -trache ${sep=' -tranche ' recalibration_tranche_values}"
-			 " -an ${sep=' -an ' recalibration_annotation_values} -mode SNP "
+		"gatk vqsr -R hg38_reference --trust-all-polymorphic -trache ${{sep=' -tranche ' recalibration_tranche_values}}"
+			 " -an ${{sep=' -an ' recalibration_annotation_values}} -mode SNP "
 			 " --resource:hapmap,known=false,training=true,truth=true,prior=15 {hapmap_resource_vcf} "
 			 " --resource:omni,known=false,training=true,truth=true,prior=12 {omni_resource_vcf} "
 			 " --resource:1000G,known=false,training=true,truth=false,prior=10 {one_thousand_genomes_resource_vcf} "
