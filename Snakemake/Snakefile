@@ -85,6 +85,8 @@ sample_dataframe = makeoutputs()
 sample_paired_end = sample_dataframe[sample_dataframe.counts == 2]
 sample_single_end = sample_dataframe[sample_dataframe.counts == 1]
 
+all_samples = sample_dataframe["sample"].drop_duplicates().values
+
 print(sample_paired_end)
 print(sample_single_end)
 
@@ -98,6 +100,10 @@ rule all:
 		bam_single=expand("output/mapping/single_end/{sample_single}.bam",sample_single=sample_single_end["sample"].drop_duplicates().values),
 		bam_paired=expand("output/mapping/paired_end/{sample_paired}.bam",sample_paired=sample_paired_end["sample"].drop_duplicates().values),
 		bam_gather=expand("output/mapping/{sample}.bam",sample=sample_dataframe["sample"].drop_duplicates().values)
+
+		#bam_downsample=expand("output/mapping/{sample}.downsample.bam",sample=all_samples)
+
+		bqsr = expand("output/bqsr/{sample}.bqsr", sample=all_samples)
 		
 
 
@@ -177,6 +183,16 @@ rule bwa_gather:
 		for f in input:
 			basename = os.path.basename(f)
 			os.symlink(os.path.join(os.path.basename(os.path.dirname(f)),basename), "output/mapping/{sample}".format(sample=basename))
+rule bwa_index:
+	input:
+		"output/mapping/{sample}.bam"
+
+	output:
+		"output/mapping/{sample}.bam.bai"
+	shell:
+		"samtools index {input}"
+
+
 
 rule markduplicates:
 	input:
