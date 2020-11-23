@@ -100,7 +100,7 @@ rule all:
 		trim_paired=expand("output/trimmed/paired_end/{sample_paired}_val_{num}.fq.gz",sample_paired=sample_paired_end["sample"].drop_duplicates().values,num=[1,2]),
 		bam_single=expand("output/mapping/single_end/{sample_single}.bam",sample_single=sample_single_end["sample"].drop_duplicates().values),
 		bam_paired=expand("output/mapping/paired_end/{sample_paired}.bam",sample_paired=sample_paired_end["sample"].drop_duplicates().values),
-		bam_gather=expand("output/mapping/{sample}.bam",sample=sample_dataframe["sample"].drop_duplicates().values),
+		bam_gather=expand("output/mapping/combined/{sample}.bam",sample=sample_dataframe["sample"].drop_duplicates().values),
 
 		bam_downsample=expand("output/mapping/downsample/{sample}.downsample.bam",sample=all_samples),
 
@@ -156,23 +156,22 @@ rule bwa_mapping_single:
 		sample=lambda wildcards: wildcards.sample_single
 	threads: 4
 	shell:
-		"bwa mem -K 100000000 -Y {params.index} -t {threads} -R '@RG\\tID:{params.sample}\\tSM:{params.sample}'  {input} |"
-		"tee >(samtools view -f 4 -o {output.bam_unmapped}) >(samtools view -bu -F 4 | samtools sort -o {output.bam}) > /dev/zero"
+		"bwa mem -K 100000000 -Y {params.index} -t {threads} -R '@RG\\tID:{params.sample}\\tSM:{params.sample}'  {input} | "
+		"samtools sort -o {output.bam}) > /dev/zero"
 
 rule bwa_mapping:
 	input: 
 		FR="output/trimmed/paired_end/{sample_paired}_val_1.fq.gz",
 		RR="output/trimmed/paired_end/{sample_paired}_val_2.fq.gz"
 	output:
-		bam="output/mapping/paired_end/{sample_paired}.bam",
-		bam_unmapped="output/mapping/paired_end/{sample_paired}_unmapped.bam"
+		bam=temporary("output/mapping/paired_end/{sample_paired}.bam")
 
 	params: index=bwaindex,
 		sample=lambda wildcards: wildcards.sample_paired
 	threads: 4
 	shell:
-		"bwa mem -K 100000000 -Y {params.index} -t {threads} -R '@RG\\tID:{params.sample}\\tSM:{params.sample}'  {input.FR} {input.RR} |"
-		"tee >(samtools view -f 4 -o {output.bam_unmapped}) >(samtools view -bu -F 4 | samtools sort -o {output.bam}) > /dev/zero"
+		"bwa mem -K 100000000 -Y {params.index} -t {threads} -R '@RG\\tID:{params.sample}\\tSM:{params.sample}'  {input.FR} {input.RR} | "
+		"samtools sort -o {output.bam}) > /dev/zero"
 
 rule bwa_gather:
 	input:
@@ -180,17 +179,17 @@ rule bwa_gather:
 		expand("output/mapping/single_end/{sample}.bam",sample=sample_single_end["sample"].drop_duplicates().values)
 
 	output:
-		expand("output/mapping/{sample}.bam",sample=sample_dataframe["sample"].drop_duplicates().values)
+		expand("output/mapping/combined/{sample}.bam",sample=sample_dataframe["sample"].drop_duplicates().values)
 	run:
 		for f in input:
 			basename = os.path.basename(f)
-			os.symlink(os.path.join(os.path.basename(os.path.dirname(f)),basename), "output/mapping/{sample}".format(sample=basename))
+			os.link(os.path.join(os.path.basename(os.path.dirname(f)),basename), "output/mapping/{sample}".format(sample=basename))
 rule bwa_index:
 	input:
-		"output/mapping/{sample}.bam"
+		"output/mapping/combined/{sample}.bam"
 
 	output:
-		"output/mapping/{sample}.bam.bai"
+		"output/mapping/combined/{sample}.bam.bai"
 	shell:
 		"samtools index {input}"
 
@@ -198,8 +197,8 @@ rule bwa_index:
 
 rule markduplicates:
 	input:
-		bai="output/mapping/{sample}.bam.bai",
-		bam="output/mapping/{sample}.bam"
+		bai="output/mapping/combined/{sample}.bam.bai",
+		bam="output/mapping/combined/{sample}.bam"
 	output:
 		bam="output/mapping/duplicates/{sample}.markduplicates.bam",
 		metrics="output/reports/{sample}.markduplicates.metrics.txt"
