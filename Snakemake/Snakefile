@@ -156,8 +156,8 @@ rule bwa_mapping_single:
 		sample=lambda wildcards: wildcards.sample_single
 	threads: 4
 	shell:
-		"bwa mem -K 100000000 -Y {params.index} -t {threads} -R '@RG\\tID:{params.sample}\\tSM:{params.sample}\\tPL:Iontorrent'  {input} | "
-		"samtools sort -o {output.bam} > /dev/zero"
+		"bwa mem -K 100000000 -Y {params.index} -t {threads} -R '@RG\\tID:{params.sample}\\tSM:{params.sample}\\tPL:Iontorrent'  {input} | samtools view -bu |"
+		"samtools sort -@ {threads} -T /dev/shm -o {output.bam} > /dev/zero"
 
 rule bwa_mapping:
 	input: 
@@ -171,7 +171,7 @@ rule bwa_mapping:
 	threads: 4
 	shell:
 		"bwa mem -K 100000000 -Y {params.index} -t {threads} -R '@RG\\tID:{params.sample}\\tSM:{params.sample}\\tPL:Iontorrent'  {input.FR} {input.RR} | "
-		"samtools sort -o {output.bam} > /dev/zero"
+		"samtools sort -T /dev/shm -@ {threads} -o {output.bam} > /dev/zero"
 
 rule bwa_gather:
 	input:
