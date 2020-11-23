@@ -232,7 +232,7 @@ rule bqsr:
 		knownSites_dbsnp=dbsnp_known_sites_vcf,
 		knownSites_mills=mills_and_1000_gold_standard,
 		knownSites_indel=hg38_known_indels,
-		optional_flags="--RF BadCigar --preserve_qscores_less_than 6 ",
+		optional_flags=" --preserve-qscores-less-than 6 ",
 		regions="-L chr1 -L chr2 -L chr3 -L chr4 -L chr5 -L chr6 -L chr7 -L chr8 -L chr9 -L chr10 -L chr11 -L chr12 -L chr13 -L chr14 -L chr15 -L chr16 -L chr17 -L chr18 -L chr19 -L chr20 -L chr21 -L chr22"
 	shell:
 		"gatk BaseRecalibrator -I {input.bam} -R {params.reference_fasta} -O {output.bqsr} "
