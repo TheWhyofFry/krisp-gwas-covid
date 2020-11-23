@@ -176,7 +176,7 @@ rule bwa_gather:
 	run:
 		for f in input:
 			basename = os.path.basename(f)
-			os.symlink(os.path.join(os.path.dirname(f),basename), "output/mapping/{sample}".format(sample=basename))
+			os.symlink(os.path.join(os.path.basename(os.path.dirname(f)),basename), "output/mapping/{sample}".format(sample=basename))
 
 rule markduplicates:
 	input:
