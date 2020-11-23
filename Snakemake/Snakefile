@@ -36,15 +36,16 @@ for i in [1,2]:
 
 hapmap_resource_vcf 			= "assets/vcf/hapmap_3.3.hg38.vcf.gz"
 dbsnp_resource_vcf   			= "assets/vcf/Homo_sapiens_assembly38.dbsnp138.vcf"
+dbsnp_known_sites_vcf			= "assets/vcf/Homo_sapiens_assembly38.dbsnp138.vcf"
 one_thousand_genomes_resource_vcf 	= "assets/vcf/1000G_omni2.5.hg38.vcf.gz"
 omni_resource_vcf 			= "assets/vcf/1000G_omni2.5.hg38.vcf.gz"
 bwaindex				= "assets/bwaindex/Homo_sapiens_assembly38.fasta.64"
 
 # Check the dbsnp ref
-dbsnp_known_sites_vcf = "assets/vcf/Homo_sapiens_assembly38.dbsnp138.vcf" 
-mills_and_1000_gold_standard = "assets/vcf/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz"
-hg38_known_indels = "assets/vcf/Homo_sapiens_assembly38.known_indels.vcf.gz"
-
+dbsnp_known_sites_vcf 			= "assets/vcf/Homo_sapiens_assembly38.dbsnp138.vcf" 
+mills_and_1000_gold_standard 		= "assets/vcf/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz"
+hg38_known_indels 			= "assets/vcf/Homo_sapiens_assembly38.known_indels.vcf.gz"
+hg38_genome				= "assets/genome/hs38DH.fa"
 
 
 
@@ -101,14 +102,11 @@ rule all:
 		bam_paired=expand("output/mapping/paired_end/{sample_paired}.bam",sample_paired=sample_paired_end["sample"].drop_duplicates().values),
 		bam_gather=expand("output/mapping/{sample}.bam",sample=sample_dataframe["sample"].drop_duplicates().values),
 
-		#bam_downsample=expand("output/mapping/{sample}.downsample.bam",sample=all_samples)
+		bam_downsample=expand("output/mapping/downsample/{sample}.downsample.bam",sample=all_samples),
 
 		bqsr = expand("output/bqsr/{sample}.bqsr", sample=all_samples),
 		
 
-
-print(expand("output/trimmed/{sample}_U.fq.gz",sample=sample_single_end["sample"].values))
-print(expand("output/trimmed/{sample}_R{num}.fq.gz",sample=sample_paired_end["sample"].drop_duplicates().values,num=[1,2]))
 
 # Pretty ugly - but it willl work for now
 rule trimming_single:
@@ -227,10 +225,10 @@ rule bqsr:
 	output:
 		bqsr="output/bqsr/{sample}.bqsr"
 	params:
-		refernce_fasta="path_to_hg38",
-		knownSites_dbsnp="{dbsnp_known_sites_vcf}",
-		knownSites_mills="{mills_and_1000_gold_standard}",
-		knownSites_indel="{hg38_known_indels}",
+		refernce_fasta=hg38_genome,
+		knownSites_dbsnp=dbsnp_known_sites_vcf,
+		knownSites_mills=mills_and_1000_gold_standard,
+		knownSites_indel=hg38_known_indels,
 		optional_flags="--rf BadCigar --preserve_qscores_less_than 6",
 		regions="-L chr1 -L chr2 -L chr3 -L chr4 -L chr5 -L chr6 -L chr7 -L chr8 -L chr9 -L chr10 -L chr11 -L chr12 -L chr13 -L chr14 -L chr15 -L chr16 -L chr17 -L chr18 -L chr19 -L chr20 -L chr21 -L chr22"
 	shell:
