@@ -151,7 +151,6 @@ rule bwa_mapping_single:
 		R="output/trimmed/single_end/{sample_single}_trimmed.fq.gz"
 	output:
 		bam="output/mapping/single_end/{sample_single}.bam",
-		bam_unmapped="output/mapping/single_end/{sample_single}_unmapped.bam"
 	params: index=bwaindex,
 		sample=lambda wildcards: wildcards.sample_single
 	threads: 4
