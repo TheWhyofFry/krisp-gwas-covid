@@ -248,7 +248,7 @@ rule apply_bqsr:
 		bam=rules.markduplicates.output.bam,
 		bqsr=rules.bqsr.output.bqsr
 	params:
-		reference="hg38_reference",
+		reference=hg38_reference,
 		optional_flags="--globalQScorePrior -1.0 --preserve_qscores_less_than 6 --useOriginalQualities --create-output-bam-index",
 		compression_flags="-SQQ 10 -SQQ 20 -SQQ 30"
 	output:
@@ -256,14 +256,14 @@ rule apply_bqsr:
 
 	shell:
 		"gatk ApplyBQSR -R {params.reference} -I {input.bam} -bqsr {input.bqsr} -O {output.bam} --disable_indel_quanls "
-		"{params.optional_flags} {params.compression_flags}"	
+		"{params.optional_flags} "	
 
 rule haplotypecaller:
 	input:
 		bam=rules.apply_bqsr.output.bam
 	params:
-		reference="hg38_reference",
-		other_options=" -G StandardAnnotation -G StandardHGAnnotation -G AS_StandardAnnotation"
+		reference=hg38_reference,
+		other_options=" -G StandardAnnotation -G StandardHGAnnotation -G AS_StandardAnnotation "
 		
 	output:
 		gvcf="output/haplotypecaller/{sample}.g.vcf.gz"
@@ -282,7 +282,7 @@ rule gcvfreblock:
 
 	params:
 		standard="-drop-low-quals -do-qual-approx --floor-blocks -GQB 10 -GWB 20 -GQB 30 -GQB 40 -GQB 50 -GQB 60",
-		reference="hg38_reference"
+		reference=hg38_reference
 
 	shell:
 		"gatk ReblockGVCF -R {params.reference} -V {input.vcf} -O {output.gvcfreblocked}"
