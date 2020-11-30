@@ -269,9 +269,9 @@ rule haplotypecaller:
 	output:
 		gvcf="output/haplotypecaller/{sample}.g.vcf.gz"
 	
-	
+	threads: 12	
 	shell:
-		"gatk HaplotypeCaller -R {params.reference} -L {params.interval_list} -I {input.bam} -O {output.gvcf} {params.other_options}"
+		"gatk HaplotypeCaller -R {params.reference} --native-pair-hmm-threads {threads} -L {params.interval_list} -I {input.bam} -O {output.gvcf} {params.other_options}"
 
 
 
