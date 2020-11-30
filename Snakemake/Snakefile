@@ -255,7 +255,7 @@ rule apply_bqsr:
 		bam="output/mapping/{sample}.recalibrated.bam"
 
 	shell:
-		"gatk ApplyBQSR -R {params.reference} -I {input.bam} -bqsr {input.bqsr} -O {output.bam} --disable_indel_quanls "
+		"gatk ApplyBQSR -R {params.reference} -I {input.bam} -bqsr {input.bqsr} -O {output.bam}  "
 		"{params.optional_flags} "	
 
 rule haplotypecaller:
