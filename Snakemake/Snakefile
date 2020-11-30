@@ -264,8 +264,8 @@ rule haplotypecaller:
 	params:
 		reference=hg38_reference,
 		interval_list=exome_interval,
-		other_options=" -ERC GVCF -G StandardAnnotation -G StandardHGAnnotation -G AS_StandardAnnotation "
-		
+		other_options=" -ERC GVCF -G StandardAnnotation -G StandardHCAnnotation -G AS_StandardAnnotation "
+	
 	output:
 		gvcf="output/haplotypecaller/{sample}.g.vcf.gz"
 	
