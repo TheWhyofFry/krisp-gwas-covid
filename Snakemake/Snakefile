@@ -263,7 +263,7 @@ rule haplotypecaller:
 		bam=rules.apply_bqsr.output.bam
 	params:
 		reference=hg38_reference,
-		interval_list=" "
+		interval_list=exome_interval
 		other_options=" -ERC GVCF -G StandardAnnotation -G StandardHGAnnotation -G AS_StandardAnnotation "
 		
 	output:
@@ -271,7 +271,7 @@ rule haplotypecaller:
 	
 	
 	shell:
-		"gatk HaplotypeCaller -R {params.reference} -I {input.bam} -O {output.gvcf} {params.other_options}"
+		"gatk HaplotypeCaller -R {params.reference} -L {params.interval_list} -I {input.bam} -O {output.gvcf} {params.other_options}"
 
 
 
