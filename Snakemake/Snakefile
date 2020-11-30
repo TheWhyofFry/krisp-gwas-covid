@@ -249,7 +249,7 @@ rule apply_bqsr:
 		bqsr=rules.bqsr.output.bqsr
 	params:
 		reference=hg38_reference,
-		optional_flags="--global-qscore-prior -1.0 --preserve-qscores-less-than 6 --useOriginalQualities --create-output-bam-index",
+		optional_flags="--global-qscore-prior -1.0 --preserve-qscores-less-than 6 --use-original-qualities --create-output-bam-index",
 		compression_flags="-SQQ 10 -SQQ 20 -SQQ 30"
 	output:
 		bam="output/mapping/{sample}.recalibrated.bam"
