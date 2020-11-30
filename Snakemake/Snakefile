@@ -47,7 +47,7 @@ mills_and_1000_gold_standard 		= "assets/vcf/Mills_and_1000G_gold_standard.indel
 hg38_known_indels 			= "assets/vcf/Homo_sapiens_assembly38.known_indels.vcf.gz"
 hg38_genome				= "assets/genome/Homo_sapiens_assembly38.fasta"
 hg38_reference 				= hg38_genome
-
+exome_interval				= "assets/exome/exome_evaluation_regions.v1.interval_list"
 
 
 
@@ -263,7 +263,8 @@ rule haplotypecaller:
 		bam=rules.apply_bqsr.output.bam
 	params:
 		reference=hg38_reference,
-		other_options=" -G StandardAnnotation -G StandardHGAnnotation -G AS_StandardAnnotation "
+		interval_list=" "
+		other_options=" -ERC GVCF -G StandardAnnotation -G StandardHGAnnotation -G AS_StandardAnnotation "
 		
 	output:
 		gvcf="output/haplotypecaller/{sample}.g.vcf.gz"
@@ -324,8 +325,8 @@ rule genotypevcf:
 		"output/genotypes/genotypes.vcf.gz"
 
 	params:
-		standard=" -R hg38_reference -D dbsnp_file -G StandardAnnotation --only-output-calls-starting-in-intervals "
-			 " --use-new-qual-calculator  -L interval --merge-input-intervals "
+		standard=" -R {hg38_reference} -D dbsnp_file -G StandardAnnotation --only-output-calls-starting-in-intervals "
+			 " --use-new-qual-calculator  -L {exome_interval} --merge-input-intervals "
 	shell:
 		"gatk GenotypeGVCFs {params.standard} -V gendb://{input} -O {output}"
 
