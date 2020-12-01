@@ -309,13 +309,13 @@ rule genomicsdb:
 
 	output:
 		PATH=directory("output/genomicdb"),
-		FILE="output/genomicsdb/dict"
 	threads: 4
 	params:
-		standard=" --batch-size 50 -L {exome_interval} --merge-input-intervals --consolidate --tmp-dir /dev/shm/ "
+		standard=" --batch-size 50 --merge-input-intervals --consolidate --tmp-dir /dev/shm/ ",
+		exome=exome_interval 
 
 	shell:
-		"gatk GenomicsDBImport --genomicsdb-workspace-path {output.PATH} --sample-name-map {input} --reader-threads {threads} {params.standard}"
+		"gatk GenomicsDBImport --genomicsdb-workspace-path {output.PATH} --sample-name-map {input} --reader-threads {threads} {params.standard} -L {params.exome}"
 
 
 
@@ -325,11 +325,9 @@ rule genotypevcf:
 	output:
 		"output/genotypes/genotypes.vcf.gz"
 
-	params:
-		standard=" -R {hg38_reference} -D dbsnp_file -G StandardAnnotation --only-output-calls-starting-in-intervals "
-			 " --use-new-qual-calculator  -L {exome_interval} --merge-input-intervals "
 	shell:
-		"gatk GenotypeGVCFs {params.standard} -V gendb://{input} -O {output}"
+		"gatk GenotypeGVCFs -R {hg38_reference} -D {dbsnp_known_sites_vcf} -G StandardAnnotation --only-output-calls-starting-in-intervals  --merge-input-intervals "
+		" -L {exome_interval} -V gendb://{input} -O {output}"
 
 # fill in resource vcf files
 rule vqsr:
@@ -341,7 +339,7 @@ rule vqsr:
 		tranches="output/genotypes/tranches",
 		model="output/genotypes/model.report"
 	shell:
-		"gatk vqsr -R hg38_reference --trust-all-polymorphic -trache ${{sep=' -tranche ' recalibration_tranche_values}}"
+		"gatk ApplyVQSR -R hg38_reference --trust-all-polymorphic -trache ${{sep=' -tranche ' recalibration_tranche_values}}"
 			 " -an ${{sep=' -an ' recalibration_annotation_values}} -mode SNP "
 			 " --resource:hapmap,known=false,training=true,truth=true,prior=15 {hapmap_resource_vcf} "
 			 " --resource:omni,known=false,training=true,truth=true,prior=12 {omni_resource_vcf} "
