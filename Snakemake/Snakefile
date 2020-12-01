@@ -297,7 +297,7 @@ rule gvcf_samplemap:
 	run:
 		with open("output/samplemap.tsv","w") as samplemapfile:
 			for sample in sample_dataframe["sample"].drop_duplicates().values:
-				samplemapfile.write("%s\%s\n"%(sample, "output/haplotypecaller/{sample}.g.reblocked.vcf.gz".format(sample=sample)))
+				samplemapfile.write("%s\t%s\n"%(sample, "output/haplotypecaller/{sample}.g.reblocked.vcf.gz".format(sample=sample)))
 	
 
 
