@@ -320,7 +320,7 @@ rule genomicsdb:
 
 rule genotypevcf:
 	input:
-		directory("output/genomicdb")
+		"output/genomicdb"
 	output:
 		"output/genotypes/genotypes.vcf.gz"
 
