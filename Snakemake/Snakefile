@@ -311,7 +311,7 @@ rule genomicsdb:
 		directory("output/genomicdb")
 	threads: 4
 	params:
-		standard=" --batch-size 50 -L 20 --merge-input-intervals --consolidate --tmp-dir /dev/shm/ "
+		standard=" --batch-size 50 -L {exome_interval} --merge-input-intervals --consolidate --tmp-dir /dev/shm/ "
 
 	shell:
 		"gatk GenomicsDBImport --genomicsdb-workspace-path {output} --sample-name-map {input} --reader-threads {threads} {params}"
