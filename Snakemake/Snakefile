@@ -308,13 +308,14 @@ rule genomicsdb:
 
 
 	output:
-		directory("output/genomicdb")
+		PATH=directory("output/genomicdb"),
+		FILE="output/genomicsdb/dict"
 	threads: 4
 	params:
 		standard=" --batch-size 50 -L {exome_interval} --merge-input-intervals --consolidate --tmp-dir /dev/shm/ "
 
 	shell:
-		"gatk GenomicsDBImport --genomicsdb-workspace-path {output} --sample-name-map {input} --reader-threads {threads} {params.standard}"
+		"gatk GenomicsDBImport --genomicsdb-workspace-path {output.PATH} --sample-name-map {input} --reader-threads {threads} {params.standard}"
 
 
 
